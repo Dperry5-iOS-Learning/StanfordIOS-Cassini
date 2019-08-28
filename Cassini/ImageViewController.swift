@@ -21,6 +21,7 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
     }
     
     
+    @IBOutlet weak var spinner: UIActivityIndicatorView!
     // Use a computed car like this to reduce code duplication.
     private var image: UIImage? {
         get {
@@ -28,7 +29,8 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
         } set{
             imageView.image = newValue
             imageView.sizeToFit()
-            scrollView.contentSize = imageView.frame.size
+            scrollView?.contentSize = imageView.frame.size
+            spinner?.stopAnimating()
         }
     }
     
@@ -55,19 +57,28 @@ class ImageViewController: UIViewController, UIScrollViewDelegate {
     }
 
     private func fetchImage(){
+        
         if let url = imageUrl {
-            let urlContents = try? Data(contentsOf: url)
-            if let imageData = urlContents {
-                image = UIImage(data: imageData)
+            spinner.startAnimating()
+            // Use weak self because closure could theoretically take so long to run
+            // that this view controller could leave the heap
+            DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+                let urlContents = try? Data(contentsOf: url)
+                DispatchQueue.main.async {
+                    if let imageData = urlContents, url == self?.imageUrl {
+                        self?.image = UIImage(data: imageData)
+                    }
+                }
+                
             }
         }
     }
     
     override func viewDidLoad(){
         super.viewDidLoad()
-        if imageUrl == nil {
-            imageUrl = DemoURLS.randomPicture
-        }
+//        if imageUrl == nil {
+//            imageUrl = DemoURLS.randomPicture
+//        }
     }
     
     
